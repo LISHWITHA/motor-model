@@ -1,186 +1,909 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Motor Viewer</title>
-  <style>
-    body, html { 
-      margin: 0; 
-      padding: 0; 
-      width: 100%; 
-      height: 100%; 
-      overflow: hidden; 
-      background-color: #181b1f; 
-    }
-    model-viewer { 
-      width: 100vw; 
-      height: 100vh; 
-    }
-  </style>
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.7.1/dist/es-module-shims.js"></script>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Digital Twin - Induction Motor</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #111827;
+            font-family: Arial, sans-serif;
+        }
+
+        #motorCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #title {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+
+            background: rgba(0, 0, 0, 0.55);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        #controls {
+
+            position: fixed;
+
+            top: 70px;
+            left: 15px;
+
+            z-index: 10;
+
+            display: flex;
+            flex-direction: column;
+
+            gap: 7px;
+
+            background: rgba(0, 0, 0, 0.60);
+
+            padding: 12px;
+
+            border-radius: 12px;
+
+            max-height: 85vh;
+
+            overflow-y: auto;
+        }
+
+        #controls button {
+
+            border: none;
+
+            padding: 9px 14px;
+
+            border-radius: 7px;
+
+            background: #2563eb;
+
+            color: white;
+
+            font-size: 14px;
+
+            cursor: pointer;
+
+            min-width: 120px;
+        }
+
+        #controls button:hover {
+            background: #1d4ed8;
+        }
+
+        #status {
+
+            position: fixed;
+
+            bottom: 15px;
+            left: 15px;
+
+            z-index: 10;
+
+            color: white;
+
+            background: rgba(0, 0, 0, 0.60);
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div id="title">
+    Digital Twin of Induction Motor
+</div>
+
+
+<div id="controls">
+
+    <button onclick="selectPart('rotor')">
+        Rotor
+    </button>
+
+    <button onclick="selectPart('shaft')">
+        Shaft
+    </button>
+
+    <button onclick="selectPart('bearing')">
+        Bearings
+    </button>
+
+    <button onclick="selectPart('winding')">
+        Windings
+    </button>
+
+    <button onclick="selectPart('fan')">
+        Fan / Cooling
+    </button>
+
+    <button onclick="selectPart('seal')">
+        Seals
+    </button>
+
+    <button onclick="selectPart('mounting')">
+        Mounting
+    </button>
+
+    <button onclick="selectPart('fastener')">
+        Bolts / Fasteners
+    </button>
+
+    <button onclick="selectPart('stator')">
+        Stator
+    </button>
+
+    <button onclick="selectPart('all')">
+        Show All
+    </button>
+
+</div>
+
+
+<div id="status">
+    Loading motor...
+</div>
+
+
+<canvas id="motorCanvas"></canvas>
+
 
 <script type="importmap">
+
 {
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@^0.183.0/build/three.module.min.js"
-  }
+    "imports": {
+
+        "three":
+        "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+
+        "three/addons/":
+        "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+
+    }
 }
+
 </script>
 
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer-module.min.js"></script>
 
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer-effects/dist/model-viewer-effects.min.js"></script>
-<body>
-  <div id="controls">
-  <button onclick="selectPart('rotor')">Rotor</button>
-  <button onclick="selectPart('shaft')">Shaft</button>
-  <button onclick="selectPart('bearing')">Bearings</button>
-  <button onclick="selectPart('winding')">Windings</button>
-  <button onclick="selectPart('fan')">Fan</button>
-  <button onclick="selectPart('seal')">Seals</button>
-  <button onclick="selectPart('mounting')">Mounting</button>
-  <button onclick="selectPart('fastener')">Fasteners</button>
-  <button onclick="selectPart('all')">Show All</button>
-</div>
-  <model-viewer 
-    src="https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb" 
-    alt="3D Induction Motor" 
-    auto-rotate 
-    camera-controls 
-    shadow-intensity="1">
-    <effect-composer render-mode="quality">
-    <outline-effect selection="rdzen_wirnikastpSTEP-2-1"></outline-effect>
-</effect-composer>
-  </model-viewer>
-<script>
-const motor = document.querySelector('model-viewer');
-  let scene = null;
+<script type="module">
 
-motor.addEventListener('load', () => {
-    console.log('Motor loaded!');
+import * as THREE from "three";
 
-    const symbols = Object.getOwnPropertySymbols(motor);
-    const sceneSymbol = symbols.find(
-        s => s.description === 'scene'
+import {
+    GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
+
+import {
+    OrbitControls
+} from "three/addons/controls/OrbitControls.js";
+
+
+
+/* =========================================================
+   BASIC THREE.JS SETUP
+   ========================================================= */
+
+
+const canvas =
+    document.getElementById("motorCanvas");
+
+
+const status =
+    document.getElementById("status");
+
+
+const scene =
+    new THREE.Scene();
+
+
+scene.background =
+    new THREE.Color(0x111827);
+
+
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+
+
+const camera =
+    new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        1000
     );
 
-    if (!sceneSymbol) {
-        console.log('Internal scene not found');
-        return;
+
+camera.position.set(
+    3,
+    2,
+    4
+);
+
+
+
+/* =========================================================
+   RENDERER
+   ========================================================= */
+
+
+const renderer =
+    new THREE.WebGLRenderer({
+
+        canvas: canvas,
+
+        antialias: true
+
+    });
+
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+
+renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
+
+
+renderer.toneMappingExposure =
+    1.2;
+
+
+
+/* =========================================================
+   LIGHTING
+   ========================================================= */
+
+
+const ambientLight =
+    new THREE.AmbientLight(
+        0xffffff,
+        1.5
+    );
+
+
+scene.add(ambientLight);
+
+
+const hemisphereLight =
+    new THREE.HemisphereLight(
+        0xffffff,
+        0x444444,
+        2
+    );
+
+
+scene.add(hemisphereLight);
+
+
+const directionalLight =
+    new THREE.DirectionalLight(
+        0xffffff,
+        3
+    );
+
+
+directionalLight.position.set(
+    5,
+    8,
+    5
+);
+
+
+scene.add(directionalLight);
+
+
+const directionalLight2 =
+    new THREE.DirectionalLight(
+        0xffffff,
+        2
+    );
+
+
+directionalLight2.position.set(
+    -5,
+    3,
+    -5
+);
+
+
+scene.add(directionalLight2);
+
+
+
+/* =========================================================
+   ORBIT CONTROLS
+   ========================================================= */
+
+
+const controls =
+    new OrbitControls(
+        camera,
+        renderer.domElement
+    );
+
+
+controls.enableDamping = true;
+
+controls.dampingFactor = 0.05;
+
+controls.autoRotate = true;
+
+controls.autoRotateSpeed = 1.0;
+
+
+
+/* =========================================================
+   LOAD MOTOR
+   ========================================================= */
+
+
+const loader =
+    new GLTFLoader();
+
+
+let motorModel = null;
+
+
+loader.load(
+
+    "./total-electricmotor.glb",
+
+    function(gltf) {
+
+        motorModel =
+            gltf.scene;
+
+
+        scene.add(
+            motorModel
+        );
+
+
+        console.log(
+            "===== MOTOR LOADED ====="
+        );
+
+
+        console.log(
+            motorModel
+        );
+
+
+
+        /* -----------------------------------------
+           PRINT ALL MESH NAMES
+           ----------------------------------------- */
+
+
+        console.log(
+            "===== MOTOR COMPONENTS ====="
+        );
+
+
+        motorModel.traverse(
+            function(object) {
+
+                if (object.isMesh) {
+
+                    console.log(
+                        object.name
+                    );
+
+                }
+
+            }
+        );
+
+
+
+        /* -----------------------------------------
+           PREPARE MATERIALS
+           ----------------------------------------- */
+
+
+        motorModel.traverse(
+            function(object) {
+
+                if (!object.isMesh)
+                    return;
+
+
+                /*
+                 Clone materials so that
+                 highlighting one component
+                 does not change another component.
+                */
+
+
+                if (
+                    Array.isArray(
+                        object.material
+                    )
+                ) {
+
+                    object.material =
+                        object.material.map(
+                            material =>
+                                material.clone()
+                        );
+
+                }
+
+                else if (
+                    object.material
+                ) {
+
+                    object.material =
+                        object.material.clone();
+
+                }
+
+            }
+        );
+
+
+
+        /* -----------------------------------------
+           CENTER MODEL
+           ----------------------------------------- */
+
+
+        const box =
+            new THREE.Box3()
+                .setFromObject(
+                    motorModel
+                );
+
+
+        const center =
+            box.getCenter(
+                new THREE.Vector3()
+            );
+
+
+        const size =
+            box.getSize(
+                new THREE.Vector3()
+            );
+
+
+        motorModel.position.x -=
+            center.x;
+
+        motorModel.position.y -=
+            center.y;
+
+        motorModel.position.z -=
+            center.z;
+
+
+
+        /* -----------------------------------------
+           CAMERA FIT
+           ----------------------------------------- */
+
+
+        const maxDimension =
+            Math.max(
+                size.x,
+                size.y,
+                size.z
+            );
+
+
+        camera.position.set(
+
+            maxDimension * 1.8,
+
+            maxDimension * 1.0,
+
+            maxDimension * 1.8
+
+        );
+
+
+        camera.lookAt(
+            0,
+            0,
+            0
+        );
+
+
+        controls.target.set(
+            0,
+            0,
+            0
+        );
+
+
+        controls.update();
+
+
+
+        status.innerText =
+            "Motor Loaded ✓";
+
+    },
+
+
+
+    function(xhr) {
+
+        if (xhr.total) {
+
+            const percent =
+                (
+                    xhr.loaded /
+                    xhr.total
+                ) * 100;
+
+
+            status.innerText =
+                "Loading motor... " +
+                Math.round(percent) +
+                "%";
+
+        }
+
+    },
+
+
+
+    function(error) {
+
+        console.error(
+            "ERROR LOADING MOTOR:",
+            error
+        );
+
+
+        status.innerText =
+            "Error loading motor ❌";
+
     }
 
-     scene = motor[sceneSymbol];
+);
 
-    console.log('===== MOTOR COMPONENTS =====');
 
-    scene.traverse((object) => {
-        if (object.isMesh) {
-            console.log(object.name);
-        }
-    });
-});
- const originalMaterialColors = new Map();
+
+/* =========================================================
+   COMPONENT PATTERNS
+   ========================================================= */
+
+
+const patterns = {
+
+    rotor:
+        /rdzen_wirnika|wirnik/i,
+
+
+    shaft:
+        /wal_silnik|shaft/i,
+
+
+    bearing:
+        /lozysko|bearing60|kulkastp|koszyczek/i,
+
+
+    winding:
+        /uzwojenie/i,
+
+
+    fan:
+        /wentillator|ventilator|fan/i,
+
+
+    seal:
+        /seal/i,
+
+
+    mounting:
+        /motor_mounting|mounting/i,
+
+
+    fastener:
+        /M6nut|M8_|M6_20_imbus|nut|bolt|screw/i,
+
+
+    stator:
+        /stator|stoj|rdzen_stoj/i
+
+};
+
+
+
+/* =========================================================
+   SELECT / ISOLATE COMPONENT
+   ========================================================= */
+
 
 function selectPart(part) {
 
-    if (!scene || !motor.model) {
-        console.log("Model not ready");
+
+    if (!motorModel) {
+
+        console.log(
+            "Motor is not loaded yet."
+        );
+
         return;
+
     }
 
-    const patterns = {
 
-        rotor: /rdzen_wirnika|wirnik/i,
 
-        shaft: /wal_silnik|shaft/i,
+    /* -----------------------------------------
+       SHOW EVERYTHING
+       ----------------------------------------- */
 
-        bearing: /lozysko|bearing60|kulkastp|koszyczek/i,
-
-        winding: /uzwojenie/i,
-
-        fan: /wentillator|ventilator|fan/i,
-
-        seal: /seal/i,
-
-        mounting: /motor_mounting|mounting/i,
-
-        fastener: /M6nut|M8_|M6_20_imbus|nut|bolt|screw/i
-    };
-
-    // Restore previous colors
-    originalMaterialColors.forEach((color, material) => {
-        material.pbrMetallicRoughness.setBaseColorFactor(color);
-    });
-
-    originalMaterialColors.clear();
 
     if (part === "all") {
-        console.log("Showing all components");
+
+        motorModel.traverse(
+            function(object) {
+
+                if (object.isMesh) {
+
+                    object.visible =
+                        true;
+
+                }
+
+            }
+        );
+
+
+        status.innerText =
+            "Showing all components";
+
+
+        console.log(
+            "Showing all components"
+        );
+
+
         return;
+
     }
 
-    const pattern = patterns[part];
+
+
+    const pattern =
+        patterns[part];
+
 
     if (!pattern) {
-        console.log("Unknown component:", part);
+
+        console.log(
+            "Unknown component:",
+            part
+        );
+
         return;
+
     }
 
-    const selectedMaterials = new Set();
 
-    scene.traverse((object) => {
 
-        if (!object.isMesh) return;
+    let selectedCount = 0;
 
-        if (pattern.test(object.name)) {
 
-            console.log("HIGHLIGHT:", object.name);
 
-            if (object.material) {
+    /* -----------------------------------------
+       FIRST SHOW ALL
+       ----------------------------------------- */
 
-                const materialName = object.material.name;
 
-                const material =
-                    motor.model.materials.find(
-                        m => m.name === materialName
-                    );
+    motorModel.traverse(
+        function(object) {
 
-                if (material && !originalMaterialColors.has(material)) {
+            if (object.isMesh) {
 
-                    originalMaterialColors.set(
-                        material,
-                        material.pbrMetallicRoughness.baseColorFactor
-                    );
+                object.visible =
+                    true;
 
-                    selectedMaterials.add(material);
-                }
             }
+
         }
-    });
-
-    // Highlight selected materials
-    selectedMaterials.forEach((material) => {
-
-        material.pbrMetallicRoughness
-            .setBaseColorFactor("#ff0000");
-
-        material.setEmissiveFactor("#ff0000");
-        material.setEmissiveStrength(1.5);
-    });
-
-    console.log(
-        "Selected component:",
-        part,
-        "| Materials:",
-        selectedMaterials.size
     );
+
+
+
+    /* -----------------------------------------
+       THEN ISOLATE SELECTED COMPONENT
+       ----------------------------------------- */
+
+
+    motorModel.traverse(
+        function(object) {
+
+            if (!object.isMesh)
+                return;
+
+
+            const matches =
+                pattern.test(
+                    object.name
+                );
+
+
+            if (matches) {
+
+                object.visible =
+                    true;
+
+
+                selectedCount++;
+
+
+                console.log(
+                    "SELECTED:",
+                    object.name
+                );
+
+            }
+
+            else {
+
+                object.visible =
+                    false;
+
+            }
+
+        }
+    );
+
+
+
+    /* -----------------------------------------
+       STATUS
+       ----------------------------------------- */
+
+
+    if (selectedCount > 0) {
+
+        status.innerText =
+            part.toUpperCase() +
+            " selected (" +
+            selectedCount +
+            " meshes)";
+
+
+        console.log(
+            "Selected:",
+            part,
+            "| Meshes:",
+            selectedCount
+        );
+
+    }
+
+    else {
+
+        status.innerText =
+            "No meshes found for " +
+            part;
+
+
+        console.log(
+            "No meshes matched:",
+            part
+        );
+
+    }
+
 }
 
-window.selectPart = selectPart;
+
+
+/* =========================================================
+   MAKE FUNCTION AVAILABLE TO BUTTONS
+   ========================================================= */
+
+
+window.selectPart =
+    selectPart;
+
+
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    controls.update();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+animate();
+
+
+
+/* =========================================================
+   WINDOW RESIZE
+   ========================================================= */
+
+
+window.addEventListener(
+    "resize",
+    function() {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
+
 </script>
 
- 
-
 </body>
+
 </html>
