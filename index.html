@@ -80,10 +80,12 @@ motor.addEventListener('load', () => {
         }
     });
 });
-  function selectPart(part) {
+ const originalMaterialColors = new Map();
 
-    if (!scene) {
-        console.log("Scene not available");
+function selectPart(part) {
+
+    if (!scene || !motor.model) {
+        console.log("Model not ready");
         return;
     }
 
@@ -106,13 +108,14 @@ motor.addEventListener('load', () => {
         fastener: /M6nut|M8_|M6_20_imbus|nut|bolt|screw/i
     };
 
-    if (part === "all") {
-        scene.traverse((object) => {
-            if (object.isMesh) {
-                object.visible = true;
-            }
-        });
+    // Restore previous colors
+    originalMaterialColors.forEach((color, material) => {
+        material.pbrMetallicRoughness.setBaseColorFactor(color);
+    });
 
+    originalMaterialColors.clear();
+
+    if (part === "all") {
         console.log("Showing all components");
         return;
     }
@@ -124,24 +127,57 @@ motor.addEventListener('load', () => {
         return;
     }
 
+    const selectedMaterials = new Set();
+
     scene.traverse((object) => {
 
-        if (object.isMesh) {
+        if (!object.isMesh) return;
 
-            if (pattern.test(object.name)) {
-                object.visible = true;
+        if (pattern.test(object.name)) {
 
-                console.log("SELECTED:", object.name);
+            console.log("HIGHLIGHT:", object.name);
 
-            } else {
-                object.visible = true;
+            if (object.material) {
+
+                const materialName = object.material.name;
+
+                const material =
+                    motor.model.materials.find(
+                        m => m.name === materialName
+                    );
+
+                if (material && !originalMaterialColors.has(material)) {
+
+                    originalMaterialColors.set(
+                        material,
+                        material.pbrMetallicRoughness.baseColorFactor
+                    );
+
+                    selectedMaterials.add(material);
+                }
             }
         }
     });
 
-    console.log("Selected component:", part);
+    // Highlight selected materials
+    selectedMaterials.forEach((material) => {
+
+        material.pbrMetallicRoughness
+            .setBaseColorFactor("#ff0000");
+
+        material.setEmissiveFactor("#ff0000");
+        material.setEmissiveStrength(1.5);
+    });
+
+    console.log(
+        "Selected component:",
+        part,
+        "| Materials:",
+        selectedMaterials.size
+    );
 }
-  window.selectPart = selectPart;
+
+window.selectPart = selectPart;
 </script>
 
  
