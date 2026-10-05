@@ -28,19 +28,23 @@
     camera-controls 
     shadow-intensity="1">
   </model-viewer>
-
 <script>
 const motor = document.querySelector('model-viewer');
 
 motor.addEventListener('load', () => {
     console.log('Motor loaded!');
 
-    const scene = motor.model?.scene;
+    const symbols = Object.getOwnPropertySymbols(motor);
+    const sceneSymbol = symbols.find(
+        s => s.description === 'scene'
+    );
 
-    if (!scene) {
-        console.log('Scene not available');
+    if (!sceneSymbol) {
+        console.log('Internal scene not found');
         return;
     }
+
+    const scene = motor[sceneSymbol];
 
     console.log('===== MOTOR COMPONENTS =====');
 
@@ -51,6 +55,8 @@ motor.addEventListener('load', () => {
     });
 });
 </script>
+
+ 
 
 </body>
 </html>
