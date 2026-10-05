@@ -21,6 +21,17 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
+  <div id="controls">
+  <button onclick="selectPart('rotor')">Rotor</button>
+  <button onclick="selectPart('shaft')">Shaft</button>
+  <button onclick="selectPart('bearing')">Bearings</button>
+  <button onclick="selectPart('winding')">Windings</button>
+  <button onclick="selectPart('fan')">Fan</button>
+  <button onclick="selectPart('seal')">Seals</button>
+  <button onclick="selectPart('mounting')">Mounting</button>
+  <button onclick="selectPart('fastener')">Fasteners</button>
+  <button onclick="selectPart('all')">Show All</button>
+</div>
   <model-viewer 
     src="https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb" 
     alt="3D Induction Motor" 
@@ -30,6 +41,7 @@
   </model-viewer>
 <script>
 const motor = document.querySelector('model-viewer');
+  let scene = null;
 
 motor.addEventListener('load', () => {
     console.log('Motor loaded!');
@@ -44,7 +56,7 @@ motor.addEventListener('load', () => {
         return;
     }
 
-    const scene = motor[sceneSymbol];
+     scene = motor[sceneSymbol];
 
     console.log('===== MOTOR COMPONENTS =====');
 
@@ -54,6 +66,67 @@ motor.addEventListener('load', () => {
         }
     });
 });
+  function selectPart(part) {
+
+    if (!scene) {
+        console.log("Scene not available");
+        return;
+    }
+
+    const patterns = {
+
+        rotor: /rdzen_wirnika|wirnik/i,
+
+        shaft: /wal_silnik|shaft/i,
+
+        bearing: /lozysko|bearing60|kulkastp|koszyczek/i,
+
+        winding: /uzwojenie/i,
+
+        fan: /wentillator|ventilator|fan/i,
+
+        seal: /seal/i,
+
+        mounting: /motor_mounting|mounting/i,
+
+        fastener: /M6nut|M8_|M6_20_imbus|nut|bolt|screw/i
+    };
+
+    if (part === "all") {
+        scene.traverse((object) => {
+            if (object.isMesh) {
+                object.visible = true;
+            }
+        });
+
+        console.log("Showing all components");
+        return;
+    }
+
+    const pattern = patterns[part];
+
+    if (!pattern) {
+        console.log("Unknown component:", part);
+        return;
+    }
+
+    scene.traverse((object) => {
+
+        if (object.isMesh) {
+
+            if (pattern.test(object.name)) {
+                object.visible = true;
+
+                console.log("SELECTED:", object.name);
+
+            } else {
+                object.visible = true;
+            }
+        }
+    });
+
+    console.log("Selected component:", part);
+}
 </script>
 
  
