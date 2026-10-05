@@ -28,5 +28,29 @@
     camera-controls 
     shadow-intensity="1">
   </model-viewer>
+
+<script>
+const motor = document.querySelector('model-viewer');
+
+motor.addEventListener('load', () => {
+    console.log('Motor loaded!');
+
+    const scene = motor.model?.scene;
+
+    if (!scene) {
+        console.log('Scene not available');
+        return;
+    }
+
+    console.log('===== MOTOR COMPONENTS =====');
+
+    scene.traverse((object) => {
+        if (object.isMesh) {
+            console.log(object.name);
+        }
+    });
+});
+</script>
+
 </body>
 </html>
