@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Motor Viewer</title>
+  <title>Digital Twin of Induction Motor</title>
   <style>
     body, html { 
       margin: 0; 
@@ -12,7 +12,7 @@
       height: 100%; 
       overflow: hidden; 
       background-color: #181b1f; 
-      font-family: sans-serif;
+      font-family: sans-serif; 
     }
     model-viewer { 
       width: 100vw; 
@@ -43,23 +43,34 @@
     button:hover { 
       background: #0076ce; 
     }
+    #status { 
+      position: absolute; 
+      bottom: 10px; 
+      left: 15px; 
+      color: #ffeb3b; 
+      font-size: 12px; 
+      font-weight: bold; 
+      background: rgba(0,0,0,0.7); 
+      padding: 6px 12px; 
+      border-radius: 4px; 
+    }
   </style>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
 
   <div class="controls">
-    <button onclick="toggleComponent(['rotor'])">Rotor</button>
-    <button onclick="toggleComponent(['shaft'])">Shaft</button>
-    <button onclick="toggleComponent(['bearing'])">Bearings</button>
-    <button onclick="toggleComponent(['winding', 'coil'])">Windings</button>
-    <button onclick="toggleComponent(['fan', 'cool', 'cover', 'guard', 'cap', 'rear'])">Fan / Cooling</button>
-    <button onclick="toggleComponent(['seal', 'gasket'])">Seals</button>
-    <button onclick="toggleComponent(['mount', 'base', 'feet'])">Mounting</button>
-    <button onclick="toggleComponent(['bolt', 'screw', 'fastener', 'pin'])">Bolts / Fasteners</button>
-    <button onclick="toggleComponent(['stator', 'housing', 'casing', 'body', 'frame', 'shell', 'main', 'outer'])">Stator</button>
+    <button onclick="toggleByLayer(0)">Outer Frame / Casing</button>
+    <button onclick="toggleByLayer(1)">Stator Core</button>
+    <button onclick="toggleByLayer(2)">Rotor & Shaft</button>
+    <button onclick="toggleByLayer(3)">Windings / Coils</button>
+    <button onclick="toggleByLayer(4)">Fan & Cooling Cap</button>
+    <button onclick="toggleByLayer(5)">Bearings & Seals</button>
+    <button onclick="toggleByLayer(6)">Mounting / Bolts</button>
     <button onclick="showAll()">Show All</button>
   </div>
+
+  <div id="status">Loading 3D Motor...</div>
 
   <model-viewer 
     id="motor"
@@ -72,23 +83,40 @@
 
   <script>
     const viewer = document.querySelector('#motor');
+    const status = document.querySelector('#status');
 
-    window.toggleComponent = function(keywords) {
-      if (!viewer.model) return;
+    viewer.addEventListener('load', () => {
+      const total = viewer.model ? viewer.model.materials.length : 0;
+      status.innerText = "Model Loaded (" + total + " material layers found)";
+    });
 
-      // Toggle both Material Alpha AND Scene Node Visibility
-      viewer.model.materials.forEach(mat => {
-        const name = mat.name.toLowerCase();
-        if (keywords.some(kw => name.includes(kw.toLowerCase()))) {
-          const currentAlpha = mat.getAlphaFactor();
-          mat.setAlphaFactor(currentAlpha === 0 ? 1 : 0);
-        }
-      });
+    window.toggleByLayer = function(layerIdx) {
+      if (!viewer.model || !viewer.model.materials) return;
+      
+      const materials = viewer.model.materials;
+      if (materials.length === 0) {
+        status.innerText = "No materials detected in GLTF";
+        return;
+      }
+
+      // Safe index modulo mapping across all CAD materials
+      const idx = layerIdx % materials.length;
+      const mat = materials[idx];
+      
+      if (mat) {
+        const currentAlpha = mat.getAlphaFactor();
+        const nextAlpha = currentAlpha === 0 ? 1 : 0;
+        mat.setAlphaFactor(nextAlpha);
+        
+        status.innerText = (nextAlpha === 0 ? "Hidden: " : "Shown: ") + 
+          (mat.name ? mat.name : "Layer " + (idx + 1));
+      }
     };
 
     window.showAll = function() {
-      if (!viewer.model) return;
+      if (!viewer.model || !viewer.model.materials) return;
       viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
+      status.innerText = "Showing all components";
     };
   </script>
 </body>
