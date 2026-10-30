@@ -7,29 +7,24 @@
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #181b1f; font-family: sans-serif; }
     model-viewer { width: 100vw; height: 100vh; }
-    .controls { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10; max-height: 90vh; overflow-y: auto; }
-    button { padding: 8px 16px; background: #0096ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; text-align: left; }
+    .controls { position: absolute; top: 15px; left: 15px; display: flex; flex-direction: column; gap: 6px; z-index: 10; max-height: 90vh; overflow-y: auto; }
+    button { padding: 8px 14px; background: #0096ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; text-align: left; }
     button:hover { background: #0076ce; }
-    #status { position: absolute; bottom: 10px; left: 20px; color: #ffeb3b; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 6px 10px; border-radius: 4px; }
+    #status { position: absolute; bottom: 10px; left: 15px; color: #ffeb3b; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px; }
   </style>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
 
   <div class="controls">
-    <button onclick="toggleComponent(['rotor'])">Rotor</button>
-    <button onclick="toggleComponent(['shaft'])">Shaft</button>
-    <button onclick="toggleComponent(['bearing'])">Bearings</button>
-    <button onclick="toggleComponent(['winding', 'coil', 'wire'])">Windings</button>
-    <button onclick="toggleComponent(['fan', 'cool', 'blade', 'cover', 'impeller', 'rear'])">Fan / Cooling</button>
-    <button onclick="toggleComponent(['seal', 'gasket'])">Seals</button>
-    <button onclick="toggleComponent(['mount', 'frame', 'base', 'feet'])">Mounting</button>
-    <button onclick="toggleComponent(['bolt', 'screw', 'fastener', 'pin'])">Bolts / Fasteners</button>
-    <button onclick="toggleComponent(['stator', 'housing', 'casing', 'body', 'shell', 'main', 'outer', 'case'])">Stator</button>
-    <button onclick="showAll()">Show All</button>
+    <button onclick="toggleMaterialGroup(0)">Outer Frame / Casing</button>
+    <button onclick="toggleMaterialGroup(1)">Stator & Coils</button>
+    <button onclick="toggleMaterialGroup(2)">Rotor & Shaft</button>
+    <button onclick="toggleMaterialGroup(3)">Fan & Cap</button>
+    <button onclick="showAll()">Reset / Show All</button>
   </div>
 
-  <div id="status">Ready</div>
+  <div id="status">3D Model Ready</div>
 
   <model-viewer 
     id="motor"
@@ -44,51 +39,31 @@
     const viewer = document.querySelector('#motor');
     const status = document.querySelector('#status');
 
-    window.toggleComponent = function(keywords) {
-      if (!viewer.model) return;
+    window.toggleMaterialGroup = function(index) {
+      if (!viewer.model || !viewer.model.materials) return;
 
-      let hiddenCount = 0;
-      let visibleCount = 0;
+      const materials = viewer.model.materials;
+      if (materials.length === 0) {
+        status.innerText = "No materials detected in GLTF file.";
+        return;
+      }
 
-      // 1. Check & toggle Materials
-      viewer.model.materials.forEach(mat => {
-        const matName = mat.name.toLowerCase();
-        if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
-          const currentAlpha = mat.getAlphaFactor();
-          const newAlpha = currentAlpha === 0 ? 1 : 0;
-          mat.setAlphaFactor(newAlpha);
-          if (newAlpha === 0) hiddenCount++; else visibleCount++;
-        }
-      });
-
-      // 2. Check & toggle Scene Nodes
-      const scene = viewer.model.drawables || [];
-      scene.forEach(node => {
-        if (node.name) {
-          const nodeName = node.name.toLowerCase();
-          if (keywords.some(kw => nodeName.includes(kw.toLowerCase()))) {
-            node.visible = !node.visible;
-            if (!node.visible) hiddenCount++; else visibleCount++;
-          }
-        }
-      });
-
-      if (hiddenCount === 0 && visibleCount === 0) {
-        status.innerText = "No parts matched: " + keywords.join(', ');
+      // Cycle through material indexes safely
+      const targetMat = materials[index % materials.length];
+      if (targetMat) {
+        const currentAlpha = targetMat.getAlphaFactor();
+        const newAlpha = currentAlpha === 0 ? 1 : 0;
+        targetMat.setAlphaFactor(newAlpha);
+        status.innerText = "Toggled Part Layer " + (index + 1) + " (" + targetMat.name + ")";
       } else {
-        status.innerText = "Toggled parts matching: " + keywords.join(', ');
+        status.innerText = "Layer index out of range. Total layers: " + materials.length;
       }
     };
 
     window.showAll = function() {
       if (!viewer.model) return;
-      
       viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
-      
-      const scene = viewer.model.drawables || [];
-      scene.forEach(node => { node.visible = true; });
-
-      status.innerText = "Showing all components";
+      status.innerText = "All layers visible";
     };
   </script>
 </body>
