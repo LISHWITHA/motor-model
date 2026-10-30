@@ -20,24 +20,24 @@
     }
     .controls { 
       position: absolute; 
-      top: 20px; 
-      left: 20px; 
+      top: 15px; 
+      left: 15px; 
       display: flex; 
       flex-direction: column; 
-      gap: 8px; 
+      gap: 6px; 
       z-index: 10; 
       max-height: 90vh; 
       overflow-y: auto; 
     }
     button { 
-      padding: 8px 16px; 
+      padding: 8px 14px; 
       background: #0096ff; 
       color: white; 
       border: none; 
       border-radius: 6px; 
       cursor: pointer; 
       font-weight: bold; 
-      font-size: 13px; 
+      font-size: 12px; 
       text-align: left; 
     }
     button:hover { 
@@ -46,12 +46,12 @@
     #status { 
       position: absolute; 
       bottom: 10px; 
-      left: 20px; 
+      left: 15px; 
       color: #ffeb3b; 
       font-size: 12px; 
       font-weight: bold; 
-      background: rgba(0,0,0,0.6); 
-      padding: 6px 10px; 
+      background: rgba(0,0,0,0.7); 
+      padding: 6px 12px; 
       border-radius: 4px; 
     }
   </style>
@@ -60,19 +60,18 @@
 <body>
 
   <div class="controls">
-    <button onclick="toggleMesh(['rotor'])">Rotor</button>
-    <button onclick="toggleMesh(['shaft'])">Shaft</button>
-    <button onclick="toggleMesh(['bearing'])">Bearings</button>
-    <button onclick="toggleMesh(['winding', 'coil', 'copper'])">Windings</button>
-    <button onclick="toggleMesh(['fan', 'cool', 'blade', 'cover', 'guard', 'shield', 'cap', 'casing_rear'])">Fan / Cooling</button>
-    <button onclick="toggleMesh(['seal', 'gasket'])">Seals</button>
-    <button onclick="toggleMesh(['mount', 'base', 'feet'])">Mounting</button>
-    <button onclick="toggleMesh(['bolt', 'screw', 'fastener', 'pin'])">Bolts / Fasteners</button>
-    <button onclick="toggleMesh(['stator', 'housing', 'casing', 'body', 'frame', 'shell', 'main', 'outer', 'motor_body'])">Stator</button>
-    <button onclick="showAll()">Show All</button>
+    <button onclick="togglePart(['rotor', 'shaft'], 0)">Rotor & Shaft</button>
+    <button onclick="togglePart(['bearing', 'ring'], 1)">Bearings</button>
+    <button onclick="togglePart(['winding', 'coil', 'copper', 'wire'], 2)">Windings</button>
+    <button onclick="togglePart(['fan', 'cool', 'blade', 'cover', 'guard'], 3)">Fan / Cooling</button>
+    <button onclick="togglePart(['seal', 'gasket'], 4)">Seals</button>
+    <button onclick="togglePart(['mount', 'base', 'feet', 'stand'], 5)">Mounting</button>
+    <button onclick="togglePart(['bolt', 'screw', 'fastener', 'pin', 'nut'], 6)">Bolts / Fasteners</button>
+    <button onclick="togglePart(['stator', 'housing', 'casing', 'body', 'frame', 'shell'], 7)">Stator / Casing</button>
+    <button onclick="showAll()">Show All Components</button>
   </div>
 
-  <div id="status">Ready</div>
+  <div id="status">3D Model Ready</div>
 
   <model-viewer 
     id="motor"
@@ -87,27 +86,37 @@
     const viewer = document.querySelector('#motor');
     const status = document.querySelector('#status');
 
-    window.toggleMesh = function(keywords) {
+    window.togglePart = function(keywords, fallbackIndex) {
       if (!viewer.model || !viewer.model.materials) return;
-      
+
+      const materials = viewer.model.materials;
       let matchedCount = 0;
 
-      viewer.model.materials.forEach(mat => {
+      // 1. Try keyword matching on material names
+      materials.forEach(mat => {
         const matName = mat.name.toLowerCase();
-        
-        const isMatch = keywords.some(kw => matName.includes(kw.toLowerCase()));
-        
-        if (isMatch) {
+        if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
           const currentAlpha = mat.getAlphaFactor();
           mat.setAlphaFactor(currentAlpha === 0 ? 1 : 0);
           matchedCount++;
         }
       });
 
-      if (matchedCount === 0) {
-        status.innerText = "No meshes found for " + keywords[0];
+      // 2. Fallback to material layer indexing if CAD names are non-descriptive
+      if (matchedCount === 0 && materials.length > 0) {
+        const targetMat = materials[fallbackIndex % materials.length];
+        if (targetMat) {
+          const currentAlpha = targetMat.getAlphaFactor();
+          targetMat.setAlphaFactor(currentAlpha === 0 ? 1 : 0);
+          status.innerText = "Toggled Component Layer " + (fallbackIndex + 1) + " (" + (targetMat.name || 'Mesh ' + fallbackIndex) + ")";
+          return;
+        }
+      }
+
+      if (matchedCount > 0) {
+        status.innerText = "Toggled " + matchedCount + " matching mesh(es)";
       } else {
-        status.innerText = "Toggled " + matchedCount + " part(s)";
+        status.innerText = "No material layers found";
       }
     };
 
