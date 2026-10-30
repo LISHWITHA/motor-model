@@ -88,8 +88,13 @@
     const status = document.querySelector('#status');
 
     viewer.addEventListener('load', () => {
-      const count = viewer.model ? viewer.model.materials.length : 0;
-      status.innerText = "Model Ready (" + count + " components loaded)";
+      if (viewer.model && viewer.model.materials) {
+        // Enable BLEND alpha mode across all materials so transparency works
+        viewer.model.materials.forEach(mat => {
+          mat.setAlphaMode('BLEND');
+        });
+        status.innerText = "Model Ready (" + viewer.model.materials.length + " materials initialized)";
+      }
     });
 
     window.toggleMesh = function(keywords) {
@@ -99,36 +104,24 @@
       viewer.model.materials.forEach(mat => {
         const matName = mat.name.toLowerCase();
         if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
-          
-          // Toggle material transparency & alpha factor
-          const pbr = mat.pbrMetallicRoughness;
           const currentAlpha = mat.getAlphaFactor();
-
-          if (currentAlpha === 0) {
-            mat.setAlphaFactor(1.0);
-            if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 1.0]);
-          } else {
-            mat.setAlphaFactor(0.0);
-            if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 0.0]);
-          }
+          const newAlpha = currentAlpha === 0 ? 1 : 0;
+          
+          mat.setAlphaFactor(newAlpha);
           count++;
         }
       });
 
       if (count === 0) {
-        status.innerText = "No parts matched keyword: " + keywords[0];
+        status.innerText = "No parts matched: " + keywords[0];
       } else {
-        status.innerText = "Toggled " + count + " part(s) matching " + keywords[0];
+        status.innerText = "Toggled " + count + " part(s)";
       }
     };
 
     window.showAll = function() {
       if (!viewer.model || !viewer.model.materials) return;
-      viewer.model.materials.forEach(mat => {
-        mat.setAlphaFactor(1.0);
-        const pbr = mat.pbrMetallicRoughness;
-        if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 1.0]);
-      });
+      viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
       status.innerText = "Showing all components";
     };
   </script>
