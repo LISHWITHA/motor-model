@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Twin of Induction Motor</title>
+  <title>3D Motor Viewer</title>
   <style>
     body, html { 
       margin: 0; 
@@ -12,118 +12,21 @@
       height: 100%; 
       overflow: hidden; 
       background-color: #181b1f; 
-      font-family: sans-serif; 
     }
     model-viewer { 
       width: 100vw; 
       height: 100vh; 
     }
-    .controls { 
-      position: absolute; 
-      top: 15px; 
-      left: 15px; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 6px; 
-      z-index: 10; 
-      max-height: 90vh; 
-      overflow-y: auto; 
-    }
-    button { 
-      padding: 8px 14px; 
-      background: #0096ff; 
-      color: white; 
-      border: none; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      font-weight: bold; 
-      font-size: 12px; 
-      text-align: left; 
-    }
-    button:hover { 
-      background: #0076ce; 
-    }
-    #status { 
-      position: absolute; 
-      bottom: 10px; 
-      left: 15px; 
-      color: #ffeb3b; 
-      font-size: 12px; 
-      font-weight: bold; 
-      background: rgba(0,0,0,0.7); 
-      padding: 6px 12px; 
-      border-radius: 4px; 
-    }
   </style>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
-
-  <div class="controls">
-    <button onclick="toggleMesh(['wirnik', 'rotor'])">Rotor</button>
-    <button onclick="toggleMesh(['wal', 'walik', 'shaft'])">Shaft</button>
-    <button onclick="toggleMesh(['lozysko', 'bearing'])">Bearings</button>
-    <button onclick="toggleMesh(['uzwojenie', 'miedz', 'winding', 'coil'])">Windings</button>
-    <button onclick="toggleMesh(['wentylator', 'oslona', 'pokrywa', 'fan', 'cool', 'cover', 'guard'])">Fan / Cooling</button>
-    <button onclick="toggleMesh(['uszczelka', 'seal', 'gasket'])">Seals</button>
-    <button onclick="toggleMesh(['lapa', 'podstawa', 'korpus', 'mount', 'base'])">Mounting</button>
-    <button onclick="toggleMesh(['srub', 'sruba', 'wkre', 'bolt', 'screw', 'fastener', 'pin', 'step'])">Bolts / Fasteners</button>
-    <button onclick="toggleMesh(['stator', 'obudowa', 'stojan', 'kraj', 'casing', 'body', 'frame', 'shell'])">Stator</button>
-    <button onclick="showAll()">Show All</button>
-  </div>
-
-  <div id="status">Loading 3D Motor...</div>
-
   <model-viewer 
-    id="motor"
     src="https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb" 
     alt="3D Induction Motor" 
     auto-rotate 
     camera-controls 
     shadow-intensity="1">
   </model-viewer>
-
-  <script>
-    const viewer = document.querySelector('#motor');
-    const status = document.querySelector('#status');
-
-    viewer.addEventListener('load', () => {
-      if (viewer.model && viewer.model.materials) {
-        // Enable BLEND alpha mode across all materials so transparency works
-        viewer.model.materials.forEach(mat => {
-          mat.setAlphaMode('BLEND');
-        });
-        status.innerText = "Model Ready (" + viewer.model.materials.length + " materials initialized)";
-      }
-    });
-
-    window.toggleMesh = function(keywords) {
-      if (!viewer.model || !viewer.model.materials) return;
-
-      let count = 0;
-      viewer.model.materials.forEach(mat => {
-        const matName = mat.name.toLowerCase();
-        if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
-          const currentAlpha = mat.getAlphaFactor();
-          const newAlpha = currentAlpha === 0 ? 1 : 0;
-          
-          mat.setAlphaFactor(newAlpha);
-          count++;
-        }
-      });
-
-      if (count === 0) {
-        status.innerText = "No parts matched: " + keywords[0];
-      } else {
-        status.innerText = "Toggled " + count + " part(s)";
-      }
-    };
-
-    window.showAll = function() {
-      if (!viewer.model || !viewer.model.materials) return;
-      viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
-      status.innerText = "Showing all components";
-    };
-  </script>
 </body>
 </html>
