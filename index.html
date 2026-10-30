@@ -60,19 +60,18 @@
 <body>
 
   <div class="controls">
-    <button onclick="toggleMesh(0)">Rotor</button>
-    <button onclick="toggleMesh(1)">Shaft</button>
-    <button onclick="toggleMesh(2)">Bearings</button>
-    <button onclick="toggleMesh(3)">Windings</button>
-    <button onclick="toggleMesh(4)">Fan / Cooling</button>
-    <button onclick="toggleMesh(5)">Seals</button>
-    <button onclick="toggleMesh(6)">Mounting</button>
-    <button onclick="toggleMesh(7)">Bolts / Fasteners</button>
-    <button onclick="toggleMesh(8)">Stator</button>
-    <button onclick="showAll()">Show All</button>
+    <button onclick="toggleLayer(0)">Outer Casing / Frame</button>
+    <button onclick="toggleLayer(1)">Stator Core</button>
+    <button onclick="toggleLayer(2)">Rotor Body</button>
+    <button onclick="toggleLayer(3)">Shaft</button>
+    <button onclick="toggleLayer(4)">Windings / Coils</button>
+    <button onclick="toggleLayer(5)">Fan & Cover</button>
+    <button onclick="toggleLayer(6)">Bearings</button>
+    <button onclick="toggleLayer(7)">Bolts & Mounts</button>
+    <button onclick="showAll()">Show All Components</button>
   </div>
 
-  <div id="status">Loading 3D Model...</div>
+  <div id="status">Loading 3D Motor...</div>
 
   <model-viewer 
     id="motor"
@@ -86,61 +85,39 @@
   <script>
     const viewer = document.querySelector('#motor');
     const status = document.querySelector('#status');
-    let meshes = [];
 
-    // Wait until 3D model is fully loaded before getting mesh components
     viewer.addEventListener('load', () => {
-      meshes = [];
-      const sceneSymbol = Object.getOwnPropertySymbols(viewer).find(s => s.description === 'scene');
-      const scene = viewer[sceneSymbol];
-
-      if (scene) {
-        scene.traverse((obj) => {
-          if (obj.isMesh) {
-            meshes.push(obj);
-          }
-        });
-        status.innerText = "Model Ready (" + meshes.length + " total meshes ready)";
-      } else {
-        // Fallback to materials array
-        if (viewer.model && viewer.model.materials) {
-          meshes = viewer.model.materials;
-          status.innerText = "Model Ready (" + meshes.length + " materials ready)";
-        }
-      }
+      const total = viewer.model ? viewer.model.materials.length : 0;
+      status.innerText = "Model Loaded (" + total + " material layers found)";
     });
 
-    window.toggleMesh = function(index) {
-      if (meshes.length === 0) {
-        status.innerText = "Please wait, model is still loading...";
+    window.toggleLayer = function(layerIdx) {
+      if (!viewer.model || !viewer.model.materials) {
+        status.innerText = "Model not ready yet";
         return;
       }
 
-      // Safeguard index modulo across detected mesh objects
-      const targetIdx = index % meshes.length;
-      const item = meshes[targetIdx];
+      const materials = viewer.model.materials;
+      // Toggle the targeted layer and adjacent sub-meshes for that component
+      const targetMat = materials[layerIdx % materials.length];
+      
+      if (targetMat) {
+        const currentAlpha = targetMat.getAlphaFactor();
+        const newAlpha = currentAlpha === 0 ? 1 : 0;
+        
+        // Hide/Show main material + connected sub-parts
+        targetMat.setAlphaFactor(newAlpha);
 
-      if (item) {
-        if (item.isMesh) {
-          item.visible = !item.visible;
-          status.innerText = (item.visible ? "Shown: " : "Hidden: ") + (item.name || "Mesh " + (targetIdx + 1));
-        } else if (item.setAlphaFactor) {
-          const currentAlpha = item.getAlphaFactor();
-          const nextAlpha = currentAlpha === 0 ? 1 : 0;
-          item.setAlphaFactor(nextAlpha);
-          status.innerText = (nextAlpha === 0 ? "Hidden: " : "Shown: ") + (item.name || "Material " + (targetIdx + 1));
-        }
+        status.innerText = (newAlpha === 0 ? "Hidden: Layer " : "Shown: Layer ") + (layerIdx + 1);
       }
     };
 
     window.showAll = function() {
-      if (meshes.length === 0) return;
-      meshes.forEach(item => {
-        if (item.isMesh) item.visible = true;
-        if (item.setAlphaFactor) item.setAlphaFactor(1);
-      });
+      if (!viewer.model || !viewer.model.materials) return;
+      viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
       status.innerText = "Showing all components";
     };
   </script>
 </body>
 </html>
+
