@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Twin of Induction Motor</title>
+  <title>3D Motor Viewer</title>
   <style>
     body, html { 
       margin: 0; 
@@ -12,7 +12,7 @@
       height: 100%; 
       overflow: hidden; 
       background-color: #181b1f; 
-      font-family: sans-serif; 
+      font-family: sans-serif;
     }
     model-viewer { 
       width: 100vw; 
@@ -43,35 +43,23 @@
     button:hover { 
       background: #0076ce; 
     }
-    #status { 
-      position: absolute; 
-      bottom: 10px; 
-      left: 15px; 
-      color: #ffeb3b; 
-      font-size: 12px; 
-      font-weight: bold; 
-      background: rgba(0,0,0,0.7); 
-      padding: 6px 12px; 
-      border-radius: 4px; 
-    }
   </style>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
 
   <div class="controls">
-    <button onclick="togglePart(['rotor', 'shaft'], 0)">Rotor & Shaft</button>
-    <button onclick="togglePart(['bearing', 'ring'], 1)">Bearings</button>
-    <button onclick="togglePart(['winding', 'coil', 'copper', 'wire'], 2)">Windings</button>
-    <button onclick="togglePart(['fan', 'cool', 'blade', 'cover', 'guard'], 3)">Fan / Cooling</button>
-    <button onclick="togglePart(['seal', 'gasket'], 4)">Seals</button>
-    <button onclick="togglePart(['mount', 'base', 'feet', 'stand'], 5)">Mounting</button>
-    <button onclick="togglePart(['bolt', 'screw', 'fastener', 'pin', 'nut'], 6)">Bolts / Fasteners</button>
-    <button onclick="togglePart(['stator', 'housing', 'casing', 'body', 'frame', 'shell'], 7)">Stator / Casing</button>
-    <button onclick="showAll()">Show All Components</button>
+    <button onclick="toggleComponent(['rotor'])">Rotor</button>
+    <button onclick="toggleComponent(['shaft'])">Shaft</button>
+    <button onclick="toggleComponent(['bearing'])">Bearings</button>
+    <button onclick="toggleComponent(['winding', 'coil'])">Windings</button>
+    <button onclick="toggleComponent(['fan', 'cool', 'cover', 'guard', 'cap', 'rear'])">Fan / Cooling</button>
+    <button onclick="toggleComponent(['seal', 'gasket'])">Seals</button>
+    <button onclick="toggleComponent(['mount', 'base', 'feet'])">Mounting</button>
+    <button onclick="toggleComponent(['bolt', 'screw', 'fastener', 'pin'])">Bolts / Fasteners</button>
+    <button onclick="toggleComponent(['stator', 'housing', 'casing', 'body', 'frame', 'shell', 'main', 'outer'])">Stator</button>
+    <button onclick="showAll()">Show All</button>
   </div>
-
-  <div id="status">3D Model Ready</div>
 
   <model-viewer 
     id="motor"
@@ -84,46 +72,23 @@
 
   <script>
     const viewer = document.querySelector('#motor');
-    const status = document.querySelector('#status');
 
-    window.togglePart = function(keywords, fallbackIndex) {
-      if (!viewer.model || !viewer.model.materials) return;
+    window.toggleComponent = function(keywords) {
+      if (!viewer.model) return;
 
-      const materials = viewer.model.materials;
-      let matchedCount = 0;
-
-      // 1. Try keyword matching on material names
-      materials.forEach(mat => {
-        const matName = mat.name.toLowerCase();
-        if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
+      // Toggle both Material Alpha AND Scene Node Visibility
+      viewer.model.materials.forEach(mat => {
+        const name = mat.name.toLowerCase();
+        if (keywords.some(kw => name.includes(kw.toLowerCase()))) {
           const currentAlpha = mat.getAlphaFactor();
           mat.setAlphaFactor(currentAlpha === 0 ? 1 : 0);
-          matchedCount++;
         }
       });
-
-      // 2. Fallback to material layer indexing if CAD names are non-descriptive
-      if (matchedCount === 0 && materials.length > 0) {
-        const targetMat = materials[fallbackIndex % materials.length];
-        if (targetMat) {
-          const currentAlpha = targetMat.getAlphaFactor();
-          targetMat.setAlphaFactor(currentAlpha === 0 ? 1 : 0);
-          status.innerText = "Toggled Component Layer " + (fallbackIndex + 1) + " (" + (targetMat.name || 'Mesh ' + fallbackIndex) + ")";
-          return;
-        }
-      }
-
-      if (matchedCount > 0) {
-        status.innerText = "Toggled " + matchedCount + " matching mesh(es)";
-      } else {
-        status.innerText = "No material layers found";
-      }
     };
 
     window.showAll = function() {
-      if (!viewer.model || !viewer.model.materials) return;
+      if (!viewer.model) return;
       viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
-      status.innerText = "Showing all components";
     };
   </script>
 </body>
