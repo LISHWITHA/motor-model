@@ -60,15 +60,16 @@
 <body>
 
   <div class="controls">
-    <button onclick="toggleLayer(0)">Outer Casing / Frame</button>
-    <button onclick="toggleLayer(1)">Stator Core</button>
-    <button onclick="toggleLayer(2)">Rotor Body</button>
-    <button onclick="toggleLayer(3)">Shaft</button>
-    <button onclick="toggleLayer(4)">Windings / Coils</button>
-    <button onclick="toggleLayer(5)">Fan & Cover</button>
-    <button onclick="toggleLayer(6)">Bearings</button>
-    <button onclick="toggleLayer(7)">Bolts & Mounts</button>
-    <button onclick="showAll()">Show All Components</button>
+    <button onclick="toggleMesh(['wirnik', 'rotor'])">Rotor</button>
+    <button onclick="toggleMesh(['wal', 'walik', 'shaft'])">Shaft</button>
+    <button onclick="toggleMesh(['lozysko', 'bearing'])">Bearings</button>
+    <button onclick="toggleMesh(['uzwojenie', 'miedz', 'winding', 'coil'])">Windings</button>
+    <button onclick="toggleMesh(['wentylator', 'oslona', 'pokrywa', 'fan', 'cool', 'cover', 'guard'])">Fan / Cooling</button>
+    <button onclick="toggleMesh(['uszczelka', 'seal', 'gasket'])">Seals</button>
+    <button onclick="toggleMesh(['lapa', 'podstawa', 'korpus', 'mount', 'base'])">Mounting</button>
+    <button onclick="toggleMesh(['srub', 'sruba', 'wkre', 'bolt', 'screw', 'fastener', 'pin', 'step'])">Bolts / Fasteners</button>
+    <button onclick="toggleMesh(['stator', 'obudowa', 'stojan', 'kraj', 'casing', 'body', 'frame', 'shell'])">Stator</button>
+    <button onclick="showAll()">Show All</button>
   </div>
 
   <div id="status">Loading 3D Motor...</div>
@@ -87,37 +88,49 @@
     const status = document.querySelector('#status');
 
     viewer.addEventListener('load', () => {
-      const total = viewer.model ? viewer.model.materials.length : 0;
-      status.innerText = "Model Loaded (" + total + " material layers found)";
+      const count = viewer.model ? viewer.model.materials.length : 0;
+      status.innerText = "Model Ready (" + count + " components loaded)";
     });
 
-    window.toggleLayer = function(layerIdx) {
-      if (!viewer.model || !viewer.model.materials) {
-        status.innerText = "Model not ready yet";
-        return;
-      }
+    window.toggleMesh = function(keywords) {
+      if (!viewer.model || !viewer.model.materials) return;
 
-      const materials = viewer.model.materials;
-      // Toggle the targeted layer and adjacent sub-meshes for that component
-      const targetMat = materials[layerIdx % materials.length];
-      
-      if (targetMat) {
-        const currentAlpha = targetMat.getAlphaFactor();
-        const newAlpha = currentAlpha === 0 ? 1 : 0;
-        
-        // Hide/Show main material + connected sub-parts
-        targetMat.setAlphaFactor(newAlpha);
+      let count = 0;
+      viewer.model.materials.forEach(mat => {
+        const matName = mat.name.toLowerCase();
+        if (keywords.some(kw => matName.includes(kw.toLowerCase()))) {
+          
+          // Toggle material transparency & alpha factor
+          const pbr = mat.pbrMetallicRoughness;
+          const currentAlpha = mat.getAlphaFactor();
 
-        status.innerText = (newAlpha === 0 ? "Hidden: Layer " : "Shown: Layer ") + (layerIdx + 1);
+          if (currentAlpha === 0) {
+            mat.setAlphaFactor(1.0);
+            if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 1.0]);
+          } else {
+            mat.setAlphaFactor(0.0);
+            if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 0.0]);
+          }
+          count++;
+        }
+      });
+
+      if (count === 0) {
+        status.innerText = "No parts matched keyword: " + keywords[0];
+      } else {
+        status.innerText = "Toggled " + count + " part(s) matching " + keywords[0];
       }
     };
 
     window.showAll = function() {
       if (!viewer.model || !viewer.model.materials) return;
-      viewer.model.materials.forEach(mat => mat.setAlphaFactor(1));
+      viewer.model.materials.forEach(mat => {
+        mat.setAlphaFactor(1.0);
+        const pbr = mat.pbrMetallicRoughness;
+        if (pbr) pbr.setBaseColorFactor([pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], 1.0]);
+      });
       status.innerText = "Showing all components";
     };
   </script>
 </body>
 </html>
-
