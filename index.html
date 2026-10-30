@@ -95,7 +95,6 @@
       viewer.model.materials.forEach(mat => {
         const matName = mat.name.toLowerCase();
         
-        // Check if material name contains any of the provided keywords
         const isMatch = keywords.some(kw => matName.includes(kw.toLowerCase()));
         
         if (isMatch) {
