@@ -54,8 +54,7 @@ loader.load('https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electr
 'Casing / covers':n=>/^(mesh_|EPart)/.test(n),
   'Fasteners':n=>/^(M6|M8)/.test(n),
   'Mounting':n=>n.startsWith('motor_mounting'),
-  'Casing / other':n=>/^mesh_/.test(n)
-};
+  
 ui.innerHTML='<button id="all">Show all</button><br>X-ray <input id="xr" type="range" min="0.1" max="1" step="0.05" value="1"><hr>';
 Object.entries(groups).forEach(([label,test])=>{
   const b=document.createElement('button');
