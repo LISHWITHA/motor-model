@@ -50,7 +50,8 @@ loader.load('https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electr
   'Windings':n=>n.startsWith('uzwojenie'),
   'Bearings':n=>/^(bearing|28_seal|kulka|koszyczek)/.test(n),
   'Rotor & Shaft':n=>/^(rdzen|wal_)/.test(n),
-  'Fan & Covers':n=>/^(ventillator|EPart)/.test(n),
+  'Fan':n=>n.startsWith('ventillator'),
+'Casing / covers':n=>/^(mesh_|EPart)/.test(n),
   'Fasteners':n=>/^(M6|M8)/.test(n),
   'Mounting':n=>n.startsWith('motor_mounting'),
   'Casing / other':n=>/^mesh_/.test(n)
