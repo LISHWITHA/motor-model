@@ -1,32 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Motor Viewer</title>
-  <style>
-    body, html { 
-      margin: 0; 
-      padding: 0; 
-      width: 100%; 
-      height: 100%; 
-      overflow: hidden; 
-      background-color: #181b1f; 
-    }
-    model-viewer { 
-      width: 100vw; 
-      height: 100vh; 
-    }
-  </style>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-</head>
-<body>
-  <model-viewer 
-    src="https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb" 
-    alt="3D Induction Motor" 
-    auto-rotate 
-    camera-controls 
-    shadow-intensity="1">
-  </model-viewer>
-</body>
-</html>
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;background:#181b1f;font-family:sans-serif;overflow:hidden}
+#ui{position:absolute;top:10px;left:10px;max-height:85vh;overflow:auto;background:#000b;color:#fff;padding:8px;border-radius:6px;font-size:12px;z-index:5}
+#ui label{display:block;white-space:nowrap}
+button{margin:2px;padding:4px 8px}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body>
+<div id="ui">Loading…</div>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.01,1000);
+const controls=new OrbitControls(camera,renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x444444,2));
+const dl=new THREE.DirectionalLight(0xffffff,2);dl.position.set(3,5,4);scene.add(dl);
+
+const ui=document.getElementById('ui');
+const meshes=[];
+
+new GLTFLoader().load('https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb',g=>{
+  scene.add(g.scene);
+  const box=new THREE.Box3().setFromObject(g.scene);
+  const c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3()).length();
+  controls.target.copy(c);
+  camera.position.set(c.x+s*.8,c.y+s*.5,c.z+s*.8);
+  controls.update();
+
+  g.scene.traverse(o=>{
+    if(!o.isMesh)return;
+    o.material=o.material.clone();
+    o.material.transparent=true;
+    meshes.push(o);
+  });
+
+  ui.innerHTML='<button id="all">Show all</button><button id="none">Hide all</button><br>'+
+    'X-ray <input id="xr" type="range" min="0.1" max="1" step="0.05" value="1"><hr>';
+  meshes.forEach((m,i)=>{
+    const l=document.createElement('label');
+    l.innerHTML=`<input type="checkbox" checked data-i="${i}"> ${m.name||('Part '+i)}`;
+    ui.appendChild(l);
+  });
+  ui.onchange=e=>{ if(e.target.dataset.i) meshes[e.target.dataset.i].visible=e.target.checked; };
+  const setAll=v=>{meshes.forEach(m=>m.visible=v);ui.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=v);};
+  all.onclick=()=>setAll(true);none.onclick=()=>setAll(false);
+  xr.oninput=()=>meshes.forEach(m=>m.material.opacity=+xr.value);
+  console.log(meshes.map(m=>m.name));
+});
+
+renderer.setAnimationLoop(()=>renderer.render(scene,camera));
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+</script></body></html>
