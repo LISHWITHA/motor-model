@@ -13,6 +13,7 @@ button{margin:2px;padding:4px 8px}
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
@@ -26,7 +27,11 @@ const dl=new THREE.DirectionalLight(0xffffff,2);dl.position.set(3,5,4);scene.add
 const ui=document.getElementById('ui');
 const meshes=[];
 
-new GLTFLoader().load('https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb',g=>{
+const draco=new DRACOLoader();
+draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+const loader=new GLTFLoader();
+loader.setDRACOLoader(draco);
+loader.load('https://cdn.jsdelivr.net/gh/LISHWITHA/motor-model@main/total-electricmotor.glb',g=>{
   scene.add(g.scene);
   const box=new THREE.Box3().setFromObject(g.scene);
   const c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3()).length();
